@@ -1,0 +1,3 @@
+[submodule "sql/sqlite-migrate"]
+	path = sql/sqlite-migrate
+	url = git@github.com:sptea/sqlite-migrate.git
