@@ -62,6 +62,10 @@ func originTokenHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, originToken)
 }
 
+func staticHundler(w http.ResponseWriter, r *http.Request) {
+	http.StripPrefix("/", http.FileServer(http.Dir(HtmlResourceDir))).ServeHTTP(w, r)
+}
+
 func main() {
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
@@ -70,11 +74,15 @@ func main() {
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.Timeout(60 * time.Second))
 
-	// TODO token should be handed with header(?)
-	r.Get("/api/origin-token", originTokenHandler)
+	r.Route("/api", func(r chi.Router) {
+		// TODO token should be handed with header(?)
+		r.Get("/origin-token", originTokenHandler)
 
-	r.Get("/api/board", getBoardHandler)
-	r.Post("/api/board", postBoardHandler)
+		r.Get("/board", getBoardHandler)
+		r.Post("/board", postBoardHandler)
+	})
+
+	r.Get("/*", staticHundler)
 
 	log.Printf("Started to listen: " + ListenPort)
 	http.ListenAndServe(":"+ListenPort, r)
