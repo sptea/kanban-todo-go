@@ -13,9 +13,9 @@ func checkErr(err error) {
 	}
 }
 
-func checkCount(rowList *sql.Rows) (count int) {
-	for rowList.Next() {
-		err := rowList.Scan(&count)
+func checkCount(rows *sql.Rows) (count int) {
+	for rows.Next() {
+		err := rows.Scan(&count)
 		checkErr(err)
 	}
 	return count
@@ -25,15 +25,10 @@ func GenerateOriginToken(tokenLength int) (string, error) {
 
 	var tokenId string
 
-	db, err := sql.Open("sqlite3", DbPath)
-	if err != nil {
-		return "", err
-	}
-
 	for {
 		tokenId = randString(tokenLength)
 
-		rowList, err := db.Query(`select count(*) as count from origin_token where token_id = ?`,
+		rowList, err := Db.Query(`select count(*) as count from origin_token where token_id = ?`,
 			tokenId,
 		)
 		if err != nil {
@@ -41,7 +36,7 @@ func GenerateOriginToken(tokenLength int) (string, error) {
 		}
 
 		if checkCount(rowList) < 1 {
-			_, err := db.Exec(
+			_, err := Db.Exec(
 				`insert into origin_token (token_id, created_at) VALUES (?, datetime('now', 'localtime'))`,
 				tokenId,
 			)

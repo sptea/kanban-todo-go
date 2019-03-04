@@ -14,14 +14,6 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-func getBoardHandler(w http.ResponseWriter, r *http.Request) {
-	board := Board{}
-	board.GetBoardFromDb()
-	log.Printf("GetBoard")
-
-	fmt.Fprintf(w, board.ToJsonString())
-}
-
 func decodeBody(r *http.Request, out interface{}) error {
 	defer r.Body.Close()
 	decoder := json.NewDecoder(r.Body)
@@ -33,19 +25,25 @@ func decodeBody(r *http.Request, out interface{}) error {
 	return err
 }
 
+func getBoardHandler(w http.ResponseWriter, r *http.Request) {
+	board := Board{}
+	board.GetBoardFromDb()
+
+	fmt.Fprintf(w, board.ToJsonString())
+}
+
 func postBoardHandler(w http.ResponseWriter, r *http.Request) {
 	var board Board
 
 	if err := decodeBody(r, &board); err != nil {
 		http.Error(w, http.StatusText(422), 422)
-		panic(err)
+		log.Panic(err)
 	}
 
 	if err := board.WriteBoardToDb(); err != nil {
 		http.Error(w, http.StatusText(422), 422)
-		panic(err)
+		log.Panic(err)
 	}
-	log.Printf("WriteBoard")
 
 	fmt.Fprintf(w, "success")
 }
@@ -54,7 +52,7 @@ func originTokenHandler(w http.ResponseWriter, r *http.Request) {
 	originToken, err := GenerateOriginToken(OriginTokenLength)
 	if err != nil {
 		log.Printf("Error occuerred during generating origin-token.")
-		panic(err)
+		log.Panic(err)
 	}
 
 	log.Printf("Generated Token: " + originToken)
@@ -67,6 +65,9 @@ func staticHundler(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
+
+	InitDB()
+
 	r := chi.NewRouter()
 	r.Use(middleware.RequestID)
 	r.Use(middleware.RealIP)

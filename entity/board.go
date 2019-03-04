@@ -1,7 +1,6 @@
 package entity
 
 import (
-	"database/sql"
 	"encoding/json"
 	"log"
 
@@ -15,14 +14,7 @@ type Board struct {
 
 func getBoardFromDb(board *Board) error {
 
-	db, err := sql.Open("sqlite3", DbPath)
-	if err != nil {
-		log.Printf("Couldnt open database file. FIlePath: " + DbPath)
-		return err
-	}
-	defer db.Close()
-
-	rowList, err := db.Query(`select * from row`)
+	rowList, err := Db.Query(`select * from row`)
 	if err != nil {
 		panic(err)
 	}
@@ -36,7 +28,7 @@ func getBoardFromDb(board *Board) error {
 		board.Row = append(board.Row, Row{RowID: rowId, Title: title})
 	}
 
-	tileList, err := db.Query(`select * from tile`)
+	tileList, err := Db.Query(`select * from tile`)
 	if err != nil {
 		return err
 	}
@@ -56,8 +48,7 @@ func getBoardFromDb(board *Board) error {
 }
 
 func (board *Board) GetBoardFromDb() {
-	err := getBoardFromDb(board)
-	if err != nil {
+	if err := getBoardFromDb(board); err != nil {
 		log.Printf("Error occuerred during database operation.")
 		panic(err)
 	}
@@ -77,16 +68,9 @@ func (board *Board) WriteBoardToDb() error {
 	prevBoard := Board{}
 	prevBoard.GetBoardFromDb()
 
-	db, err := sql.Open("sqlite3", DbPath)
-	if err != nil {
-		log.Printf("Couldnt open database file. FIlePath: " + DbPath)
-		return err
-	}
-	defer db.Close()
-
 	newRowIdList := make(map[string]struct{})
 	for _, row := range board.Row {
-		_, err := db.Exec("replace into row(row_id,title) values(?,?);", row.RowID, row.Title)
+		_, err := Db.Exec("replace into row(row_id,title) values(?,?);", row.RowID, row.Title)
 		if err != nil {
 			return err
 		}
@@ -96,7 +80,7 @@ func (board *Board) WriteBoardToDb() error {
 
 	for _, row := range prevBoard.Row {
 		if _, exist := newRowIdList[row.RowID]; !exist {
-			_, err := db.Exec("delete from row where row_id = ?;", row.RowID)
+			_, err := Db.Exec("delete from row where row_id = ?;", row.RowID)
 			if err != nil {
 				return err
 			}
@@ -105,7 +89,7 @@ func (board *Board) WriteBoardToDb() error {
 
 	newTileIdList := make(map[string]struct{})
 	for _, tile := range board.Tile {
-		_, err := db.Exec("replace into tile(tile_id, title, row_id, text) values(?,?,?,?);", tile.TileID, tile.Title, tile.RowID, tile.Text)
+		_, err := Db.Exec("replace into tile(tile_id, title, row_id, text) values(?,?,?,?);", tile.TileID, tile.Title, tile.RowID, tile.Text)
 		if err != nil {
 			return err
 		}
@@ -115,7 +99,7 @@ func (board *Board) WriteBoardToDb() error {
 
 	for _, tile := range prevBoard.Tile {
 		if _, exist := newTileIdList[tile.TileID]; !exist {
-			_, err := db.Exec("delete from tile where tile_id = ?;", tile.TileID)
+			_, err := Db.Exec("delete from tile where tile_id = ?;", tile.TileID)
 			if err != nil {
 				return err
 			}
